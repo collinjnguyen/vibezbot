@@ -37,7 +37,7 @@ client.on("message", async message => {
   const serverQueue = queue.get(message.guild.id);
   if (message.content.startsWith(`${prefix}playvibez`)) {
 
-    execute(message, serverQueue);
+    execute(message, serverQueue, null);
     return;
 
   } else if (message.content.startsWith(`${prefix}skipvibez`)) {
@@ -57,7 +57,7 @@ client.on("message", async message => {
 
   } else if (message.content.startsWith(`${prefix}vibecheck`)) {
 
-    vibeCheck(message);
+    vibeCheck(message, serverQueue);
     return;
 
   } else if (message.content.startsWith(`${prefix}whatsthevibez`)) {
@@ -68,6 +68,11 @@ client.on("message", async message => {
   } else if (message.content.startsWith(`${prefix}playavibe`)){
 
     playAVibe(message, serverQueue);
+    return;
+
+  } else if (message.content.startsWith(`${prefix}vibechecksomeone`)) {
+
+    vibeCheckSomeone(message, serverQueue);
     return;
 
   } else {
@@ -193,7 +198,7 @@ async function mostVibes(message) {
         message.channel.send(`${emoji} ${vibestUser} has the most vibezzz ${emoji}`);
 }
 
-async function vibeCheck(message) {
+async function vibeCheck(message, serverQueue, user) {
   const members = await message.guild.members.fetch();
         var memberList = [];
         for (const [key, value] of members.entries()) {
@@ -214,6 +219,28 @@ async function vibeCheck(message) {
         } else {
             message.channel.send(`That person does not exist so there are no vibez :poop:`);
         }
+
+        if (playerToBeChecked == "justynekyle" || user == "justynekyle" ) {
+          await execute(message, serverQueue, "https://www.youtube.com/watch?v=NNiTxUEnmKI");
+          serverQueue.connection.dispatcher.end();
+        } else if (playerToBeChecked == "chhengsta" || user == "chhengsta" ) {
+          await execute(message, serverQueue, "https://www.youtube.com/watch?v=x2_z4iSb0qI");
+          serverQueue.connection.dispatcher.end();
+        } else if (playerToBeChecked == "JellyJai" || user == "JellyJai" ) {
+          await execute(message, serverQueue, "https://m.youtube.com/watch?v=bSJV1pIzoxg");
+          serverQueue.connection.dispatcher.end();
+        } else if (playerToBeChecked == "KevinGetsActive" || user == "KevinGetsActive" ) {
+          await execute(message, serverQueue, "https://youtu.be/R1ZFnbntcJI");
+          serverQueue.connection.dispatcher.end();
+        } else if (playerToBeChecked == "derasa" || user == "derasa" ) {
+          await execute(message, serverQueue, "https://www.youtube.com/watch?v=fyIcQ1Xl-rs");
+          serverQueue.connection.dispatcher.end();
+        } else if (playerToBeChecked == "TrillTim" || user == "TrillTim" ) {
+          
+        } else if (playerToBeChecked == "Dimezs" || user == "Dimezs" ) {
+          
+        }
+
 }
 
 async function whatsTheVibes(message) {
@@ -226,6 +253,28 @@ async function whatsTheVibes(message) {
 async function playAVibe(message, serverQueue) {
     const chosenVibe = songs[Math.floor(Math.random() * songs.length)]
     await execute(message, serverQueue, chosenVibe);
+}
+
+async function vibeCheckSomeone(message, serverQueue) {
+    const user = getRandomUser(message);
+
+
+}
+
+async function getRandomUser(message) {
+  const members = await message.guild.members.fetch();
+        var memberList = [];
+        for (const [key, value] of members.entries()) {
+            if (value.user.bot == false && value.user.presence.status != "offline") {
+                if (value.nickname == null) {
+                    memberList.push(value.user.username);
+                } else {
+                    memberList.push(value.nickname);
+                }
+            }
+        }
+
+      return memberList[Math.floor(Math.random() * memberList.length)];
 }
 
 client.login(token);
