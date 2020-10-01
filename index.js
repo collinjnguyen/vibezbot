@@ -29,7 +29,7 @@ client.once("disconnect", () => {
 });
 
 
-
+// Check for valid messages and run corresponding functions
 client.on("message", async message => {
   if (message.author.bot) return;
   if (!message.content.startsWith(prefix)) return;
@@ -76,6 +76,7 @@ client.on("message", async message => {
 
 });
 
+// Try to play song in VC
 async function execute(message, serverQueue, chosenSong) {
     const args = message.content.split(" ");
   
@@ -133,6 +134,7 @@ async function execute(message, serverQueue, chosenSong) {
     }
   }
   
+  // Skip song
   function skip(message, serverQueue) {
     if (!message.member.voice.channel)
       return message.channel.send(
@@ -143,6 +145,7 @@ async function execute(message, serverQueue, chosenSong) {
     serverQueue.connection.dispatcher.end();
   }
   
+  // Stop song
   function stop(message, serverQueue) {
     if (!message.member.voice.channel)
       return message.channel.send(
@@ -152,6 +155,7 @@ async function execute(message, serverQueue, chosenSong) {
     serverQueue.connection.dispatcher.end();
   }
   
+  // Play song
   function play(guild, song) {
     const serverQueue = queue.get(guild.id);
     if (!song) {
@@ -170,6 +174,7 @@ async function execute(message, serverQueue, chosenSong) {
     dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
     serverQueue.textChannel.send(`Now vibin to: :fire: **${song.title}** :fire:`);
   }
+
 
 async function mostVibes(message) {
   const members = await message.guild.members.fetch();
