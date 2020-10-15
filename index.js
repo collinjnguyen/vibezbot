@@ -240,7 +240,7 @@ async function execute(message, serverQueue, chosenSong) {
     }
   
     const dispatcher = serverQueue.connection
-      .play(ytdl(song.url))
+      .play(ytdl(song.url, {quality: 'highestaudio', highWaterMark: 1 << 25 }))
       .on("finish", () => {
         serverQueue.songs.shift();
         play(guild, serverQueue.songs[0]);
@@ -274,14 +274,23 @@ async function vibeCheck(message, serverQueue, user) {
         for (const [key, value] of members.entries()) {
             if (value.user.bot == false && value.user.presence.status != "offline") {
                 if (value.nickname == null) {
-                    memberList.push(value.user.username);
+                    memberList.push(value.user.username.toLowerCase());
                 } else {
                     memberList.push(value.nickname);
                 }
             }
         }
         var msg = message.content.split(" ");
-        var playerToBeChecked = msg[1];
+        var playerToBeChecked;
+        if (msg.length > 2) {
+          playerToBeChecked = "";
+          for (var i = 1; i < msg.length; i++) {
+            playerToBeChecked = playerToBeChecked + msg[i] + " ";
+          }
+          playerToBeChecked = playerToBeChecked.trim();
+        } else {
+          playerToBeChecked = msg[1];
+        }
         
         if (memberList.includes(playerToBeChecked)) {
             const vibeLevel = vibeLevels[Math.floor(Math.random() * vibeLevels.length)]
