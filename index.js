@@ -2,6 +2,7 @@ const Discord = require("discord.js");
 const { prefix } = require("./config.json");
 const ytdl = require("ytdl-core");
 const fs = require('fs');
+const yts = require("yt-search");
 
 const client = new Discord.Client();
 
@@ -143,20 +144,45 @@ async function execute(message, serverQueue, chosenSong) {
     }
   
     var songInfo;
+    var songTitle;
+    var songUrl;
+    var isSearched;
 
     if (chosenSong == null) {
-        songInfo = await ytdl.getInfo(args[1]);
+        // songInfo = await ytdl.getInfo(args[1]);
+        if (ytdl.validateURL(args[1])) {
+          songInfo = await ytdl.getInfo(args[1]);
+          isSearched = false;
+        } else {
+          const {videos} = await yts(args.slice(1).join(" "));
+          if (!videos.length) return message.channel.send("No vibez were found!");
+          songTitle = videos[0].title;
+          songUrl = videos[0].url;
+          isSearched = true;
+        }
     } else {
         songInfo = await ytdl.getInfo(chosenSong);
     }
 
-    const song = {
-      title: songInfo.videoDetails.title,
-      url: songInfo.videoDetails.video_url,
-      playedBy: message.author.username,
-      level: 0,
-      timesPlayed: 0
-    };
+    let song;
+
+    if (!isSearched) {
+      song = {
+        title: songInfo.videoDetails.title,
+        url: songInfo.videoDetails.video_url,
+        playedBy: message.author.username,
+        level: 0,
+        timesPlayed: 0
+      };
+    } else {
+      song = {
+        title: songTitle,
+        url: songUrl,
+        playedBy: message.author.username,
+        level: 0,
+        timesPlayed: 0
+      };
+    }
   
     if (!serverQueue) {
       const queueContruct = {
