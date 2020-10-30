@@ -1,10 +1,15 @@
-const Discord = require("discord.js");
+const { Client, Intents } = require("discord.js");
 const { prefix } = require("./config.json");
 const ytdl = require("ytdl-core");
 const fs = require('fs');
 const yts = require("yt-search");
 
-const client = new Discord.Client();
+const intents = new Intents([
+  Intents.NON_PRIVILEGED, // include all non-privileged intents, would be better to specify which ones you actually need
+  "GUILD_MEMBERS", // lets you request guild members (i.e. fixes the issue)
+]);
+
+const client = new Client({ ws: { intents } });
 
 const queue = new Map();
 
@@ -144,8 +149,14 @@ async function execute(message, serverQueue, chosenSong) {
     }
   
     var songInfo;
+
     var songTitle;
     var songUrl;
+    var songThumbnail;
+    var songDescription;
+    var songAuthor;
+    var songDuration;
+
     var isSearched;
 
     if (chosenSong == null) {
@@ -158,31 +169,38 @@ async function execute(message, serverQueue, chosenSong) {
           if (!videos.length) return message.channel.send("No vibez were found!");
           songTitle = videos[0].title;
           songUrl = videos[0].url;
+          songThumbnail = videos[0].thumbnail_url;
+          songAuthor = videos[0].author.name;
+          songDuration = videos[0].timestamp;
           isSearched = true;
         }
     } else {
         songInfo = await ytdl.getInfo(chosenSong);
     }
 
-    let song;
+    var song = {
+      title: " ",
+      url: " ",
+      thumbnail: " ",
+      description: " ",
+      author: " ",
+      duration: " ",
+      playedBy: message.author.username,
+      level: 0,
+      timesPlayed: 0
+    };
 
     if (!isSearched) {
-      song = {
-        title: songInfo.videoDetails.title,
-        url: songInfo.videoDetails.video_url,
-        playedBy: message.author.username,
-        level: 0,
-        timesPlayed: 0
-      };
+      song.title = songInfo.videoDetails.title;
+      song.url = songInfo.videoDetails.video_url;
+      song.thumbnail = songInfo.videoDetails.thumbnail_url;
+      song.author = songInfo.videoDetails.author;
     } else {
-      song = {
-        title: songTitle,
-        url: songUrl,
-        playedBy: message.author.username,
-        level: 0,
-        timesPlayed: 0
-      };
-    }
+      song.title = songTitle;
+      song.url = songUrl;
+      song.thumbnail = songThumbnail;
+      song.author = songAuthor;
+    };
   
     if (!serverQueue) {
       const queueContruct = {
@@ -201,7 +219,7 @@ async function execute(message, serverQueue, chosenSong) {
       try {
         var connection = await voiceChannel.join();
         queueContruct.connection = connection;
-        play(message.guild, queueContruct.songs[0]);
+        play(message.guild, queueContruct.songs[0], songInfo);
       } catch (err) {
         console.log(err);
         queue.delete(message.guild.id);
@@ -257,7 +275,7 @@ async function execute(message, serverQueue, chosenSong) {
   }
   
   // Play song
-  function play(guild, song) {
+  function play(guild, song, songInfo) {
     const serverQueue = queue.get(guild.id);
     if (!song) {
       serverQueue.voiceChannel.leave();
@@ -274,6 +292,8 @@ async function execute(message, serverQueue, chosenSong) {
       .on("error", error => console.error(error));
     dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
     serverQueue.textChannel.send(`Now vibin to: :fire: **${song.title}** :fire:`);
+    // serverQueue.textChannel.send(generateSongEmbed(song));
+    // Working on creating an embed message 
   }
 
 
@@ -298,53 +318,55 @@ async function vibeCheck(message, serverQueue, user) {
   const members = await message.guild.members.fetch();
         var memberList = [];
         for (const [key, value] of members.entries()) {
-            if (value.user.bot == false && value.user.presence.status != "offline") {
+            if (/*value.user.bot == false && value.user.presence.status != "offline"*/true) {
                 if (value.nickname == null) {
                     memberList.push(value.user.username.toLowerCase());
                 } else {
-                    memberList.push(value.nickname);
+                    memberList.push(value.nickname.toLowerCase());
                 }
             }
         }
-        var msg = message.content.split(" ");
-        var playerToBeChecked;
-        if (msg.length > 2) {
-          playerToBeChecked = "";
-          for (var i = 1; i < msg.length; i++) {
-            playerToBeChecked = playerToBeChecked + msg[i] + " ";
-          }
-          playerToBeChecked = playerToBeChecked.trim();
-        } else {
-          playerToBeChecked = msg[1];
-        }
         
-        if (memberList.includes(playerToBeChecked)) {
-            const vibeLevel = vibeLevels[Math.floor(Math.random() * vibeLevels.length)]
-            message.channel.send(`${playerToBeChecked} ${vibeLevel}`);
-        } else {
-            message.channel.send(`That person does not exist so there are no vibez :poop:`);
-        }
+        if (!message.content.includes(",")) {
+          var msg = message.content.split(" ");
+          var playerToBeChecked;
+          if (msg.length > 2) {
+            playerToBeChecked = "";
+            for (var i = 1; i < msg.length; i++) {
+              playerToBeChecked = playerToBeChecked + msg[i] + " ";
+            }
+            playerToBeChecked = playerToBeChecked.trim().toLowerCase();
+          } else {
+            playerToBeChecked = msg[1].toLowerCase();
+          }
 
-        // if (playerToBeChecked == "justynekyle" || user == "justynekyle" ) {
-        //   await execute(message, serverQueue, "https://www.youtube.com/watch?v=NNiTxUEnmKI");
-        //   await serverQueue.connection.dispatcher.end();
-        // } else if (playerToBeChecked == "chhengsta" || user == "chhengsta" ) {
-        //   await execute(message, serverQueue, "https://www.youtube.com/watch?v=x2_z4iSb0qI");
-        //   await  serverQueue.connection.dispatcher.end();
-        // } else if (playerToBeChecked == "JellyJai" || user == "JellyJai" ) {
-        //   await execute(message, serverQueue, "https://m.youtube.com/watch?v=bSJV1pIzoxg");
-        //   await serverQueue.connection.dispatcher.end();
-        // } else if (playerToBeChecked == "KevinGetsActive" || user == "KevinGetsActive" ) {
-        //   await execute(message, serverQueue, "https://youtu.be/R1ZFnbntcJI");
-        //   await serverQueue.connection.dispatcher.end();
-        // } else if (playerToBeChecked == "derasa" || user == "derasa" ) {
-        //   await execute(message, serverQueue, "https://www.youtube.com/watch?v=fyIcQ1Xl-rs");
-        //   await serverQueue.connection.dispatcher.end();
-        // } else if (playerToBeChecked == "TrillTim" || user == "TrillTim" ) {
-          
-        // } else if (playerToBeChecked == "Dimezs" || user == "Dimezs" ) {
-          
-        // }
+          if (memberList.includes(playerToBeChecked)) {
+              const vibeLevel = vibeLevels[Math.floor(Math.random() * vibeLevels.length)]
+              message.channel.send(`${playerToBeChecked} ${vibeLevel}`);
+          } else {
+              message.channel.send(`That person does not exist so there are no vibez :poop:`);
+          }
+        } else {
+          let playersToBeChecked = [];
+          var msg = message.content.split(",");
+          console.log(msg);
+          msg[0] = msg[0].substring(10, msg[0].length);
+          msg.forEach(element => {
+            if (element.includes(",")) {
+              playersToBeChecked.push(element.substring(0, element.length-1).trim());
+            } else {
+              playersToBeChecked.push(element.trim());
+            }
+          });
+          playersToBeChecked.forEach(element => {
+            if (memberList.includes(element)) {
+              const vibeLevel = vibeLevels[Math.floor(Math.random() * vibeLevels.length)]
+              message.channel.send(`${element} ${vibeLevel}`);
+          } else {
+              message.channel.send(`That person does not exist so there are no vibez :poop:`);
+          }
+          });
+        }
 
 }
 
@@ -540,6 +562,24 @@ function clearData(users, songs) {
     });
     vibeSongs = [];
   }
+}
+
+function generateSongEmbed(song) {
+  const embed = new Discord.MessageEmbed()
+    .setColor('#0099ff')
+    .setTitle(song.title)
+    .setURL(song.url)
+    .setAuthor('Now vibin to:')
+    .setDescription(song.description)
+    .setThumbnail(song.thumbnail)
+    .addFields(
+      { name: 'Channel', value: song.author, inline: true },
+      { name: 'Duration', value: song.duration, inline: true },
+    )
+    .setImage(song.thumbnail)
+    .setTimestamp()
+    .setFooter('VibezBot KP CMONNN');
+    return embed;
 }
 
 fs.readFile('./token.txt', 'utf-8', (err, data) => {
