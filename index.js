@@ -301,7 +301,7 @@ async function mostVibes(message) {
   const members = await message.guild.members.fetch();
         var memberList = [];
         for (const [key, value] of members.entries()) {
-            if (value.user.bot == false && value.user.presence.status != "offline") {
+            if (/*value.user.bot == false && value.user.presence.status != "offline"*/true) {
                 if (value.nickname == null) {
                     memberList.push(value.user.username);
                 } else {
@@ -312,6 +312,9 @@ async function mostVibes(message) {
         var emoji = emojis[Math.floor(Math.random() * emojis.length)];
         const vibestUser = memberList[Math.floor(Math.random() * memberList.length)];
         message.channel.send(`${emoji} ${vibestUser} has the most vibezzz ${emoji}`);
+        if (vibestUser == "VibezBot") {
+          message.channel.send(`CMONNNN`);
+        }
 }
 
 async function vibeCheck(message, serverQueue, user) {
@@ -349,7 +352,6 @@ async function vibeCheck(message, serverQueue, user) {
         } else {
           let playersToBeChecked = [];
           var msg = message.content.split(",");
-          console.log(msg);
           msg[0] = msg[0].substring(10, msg[0].length);
           msg.forEach(element => {
             if (element.includes(",")) {
