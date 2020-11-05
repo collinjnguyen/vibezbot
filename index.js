@@ -3,6 +3,7 @@ const { prefix } = require("./config.json");
 const ytdl = require("ytdl-core");
 const fs = require('fs');
 const yts = require("yt-search");
+const cleverbot = require('cleverbot-free');
 
 const intents = new Intents([
   Intents.NON_PRIVILEGED, // include all non-privileged intents, would be better to specify which ones you actually need
@@ -65,6 +66,11 @@ client.on("message", async message => {
     mostVibes(message);
     return;
 
+  } else if (message.content.startsWith(`${prefix}whohastheleastvibez`)) { // random vibez stuff
+
+    leastVibes(message);
+    return;
+
   } else if (message.content.startsWith(`${prefix}vibecheck`)) {
 
     vibeCheck(message, serverQueue);
@@ -98,6 +104,11 @@ client.on("message", async message => {
   } else if (message.content.startsWith(`${prefix}notavibe`)) {
 
     downvote(message);
+    return;
+
+  } else if (message.content.startsWith(`${prefix}vibezbot`)) {
+
+    ask(message);
     return;
 
   } else if (message.content.startsWith(`${prefix}fetchdata`)) {
@@ -299,93 +310,102 @@ async function execute(message, serverQueue, chosenSong) {
 
 async function mostVibes(message) {
   const members = await message.guild.members.fetch();
-        var memberList = [];
-        for (const [key, value] of members.entries()) {
-            if (/*value.user.bot == false && value.user.presence.status != "offline"*/true) {
-                if (value.nickname == null) {
-                    memberList.push(value.user.username);
-                } else {
-                    memberList.push(value.nickname);
-                }
-            }
-        }
-        var emoji = emojis[Math.floor(Math.random() * emojis.length)];
-        const vibestUser = memberList[Math.floor(Math.random() * memberList.length)];
-        message.channel.send(`${emoji} ${vibestUser} has the most vibezzz ${emoji}`);
-        if (vibestUser == "VibezBot") {
-          message.channel.send(`CMONNNN`);
-        }
+  var memberList = [];
+  for (const [key, value] of members.entries()) {
+      if (/*value.user.bot == false && value.user.presence.status != "offline"*/true) {
+          if (value.nickname == null) {
+              memberList.push(value.user.username);
+          } else {
+              memberList.push(value.nickname);
+          }
+      }
+  }
+  var emoji = emojis[Math.floor(Math.random() * emojis.length)];
+  const vibestUser = memberList[Math.floor(Math.random() * memberList.length)];
+  message.channel.send(`${emoji} ${vibestUser} has the most vibezzz ${emoji}`);
+  if (vibestUser == "VibezBot") {
+    message.channel.send(`CMONNNN`);
+  }
+}
+
+async function leastVibes(message) {
+  message.channel.send(`trillesttim has the least vibez :poop:`);
 }
 
 async function vibeCheck(message, serverQueue, user) {
   const members = await message.guild.members.fetch();
-        var memberList = [];
-        for (const [key, value] of members.entries()) {
-            if (/*value.user.bot == false && value.user.presence.status != "offline"*/true) {
-                if (value.nickname == null) {
-                    memberList.push(value.user.username.toLowerCase());
-                } else {
-                    memberList.push(value.nickname.toLowerCase());
-                }
-            }
-        }
-        
-        if (!message.content.includes(",")) {
-          var msg = message.content.split(" ");
-          var playerToBeChecked;
-          if (msg.length > 2) {
-            playerToBeChecked = "";
-            for (var i = 1; i < msg.length; i++) {
-              playerToBeChecked = playerToBeChecked + msg[i] + " ";
-            }
-            playerToBeChecked = playerToBeChecked.trim().toLowerCase();
+  var memberList = [];
+  for (const [key, value] of members.entries()) {
+      if (/*value.user.bot == false && value.user.presence.status != "offline"*/true) {
+          if (value.nickname == null) {
+              memberList.push(value.user.username.toLowerCase());
           } else {
-            playerToBeChecked = msg[1].toLowerCase();
+              memberList.push(value.nickname.toLowerCase());
           }
+      }
+  }
 
-          if (memberList.includes(playerToBeChecked)) {
-              const vibeLevel = vibeLevels[Math.floor(Math.random() * vibeLevels.length)]
-              message.channel.send(`${playerToBeChecked} ${vibeLevel}`);
-          } else {
-              message.channel.send(`That person does not exist so there are no vibez :poop:`);
-          }
-        } else {
-          let playersToBeChecked = [];
-          var msg = message.content.split(",");
-          msg[0] = msg[0].substring(10, msg[0].length);
-          msg.forEach(element => {
-            if (element.includes(",")) {
-              playersToBeChecked.push(element.substring(0, element.length-1).trim());
-            } else {
-              playersToBeChecked.push(element.trim());
-            }
-          });
-          playersToBeChecked.forEach(element => {
-            if (memberList.includes(element)) {
-              const vibeLevel = vibeLevels[Math.floor(Math.random() * vibeLevels.length)]
-              message.channel.send(`${element} ${vibeLevel}`);
-          } else {
-              message.channel.send(`That person does not exist so there are no vibez :poop:`);
-          }
-          });
-        }
+  const channels = await message.guild.channels;
+  var channelList = [];
+  
+  //console.log(channels);
+  
+  if (!message.content.includes(",")) {
+    var msg = message.content.split(" ");
+    var playerToBeChecked;
+    if (msg.length > 2) {
+      playerToBeChecked = "";
+      for (var i = 1; i < msg.length; i++) {
+        playerToBeChecked = playerToBeChecked + msg[i] + " ";
+      }
+      playerToBeChecked = playerToBeChecked.trim().toLowerCase();
+    } else {
+      playerToBeChecked = msg[1].toLowerCase();
+    }
+
+    if (memberList.includes(playerToBeChecked)) {
+        const vibeLevel = vibeLevels[Math.floor(Math.random() * vibeLevels.length)]
+        message.channel.send(`${playerToBeChecked} ${vibeLevel}`);
+    } else {
+        message.channel.send(`That person does not exist so there are no vibez :poop:`);
+    }
+  } else {
+    let playersToBeChecked = [];
+    var msg = message.content.split(",");
+    msg[0] = msg[0].substring(10, msg[0].length);
+    msg.forEach(element => {
+      if (element.includes(",")) {
+        playersToBeChecked.push(element.substring(0, element.length-1).trim());
+      } else {
+        playersToBeChecked.push(element.trim());
+      }
+    });
+    playersToBeChecked.forEach(element => {
+      if (memberList.includes(element)) {
+        const vibeLevel = vibeLevels[Math.floor(Math.random() * vibeLevels.length)]
+        message.channel.send(`${element} ${vibeLevel}`);
+    } else {
+        message.channel.send(`That person does not exist so there are no vibez :poop:`);
+    }
+    });
+  }
 
 }
 
 async function whatsTheVibes(message) {
   message.channel.send(`The current vibe is... `);
-        var emoji = emojis[Math.floor(Math.random() * emojis.length)];
-        const chosenVibe = games[Math.floor(Math.random() * games.length)]
-        message.channel.send(`${emoji} **${chosenVibe}** ${emoji}`);
+  var emoji = emojis[Math.floor(Math.random() * emojis.length)];
+  const chosenVibe = games[Math.floor(Math.random() * games.length)]
+  message.channel.send(`${emoji} **${chosenVibe}** ${emoji}`);
 }
 
 async function playAVibe(message, serverQueue) {
-    const chosenVibe = songs[Math.floor(Math.random() * songs.length)]
-    await execute(message, serverQueue, chosenVibe);
+  const chosenVibe = songs[Math.floor(Math.random() * songs.length)]
+  await execute(message, serverQueue, chosenVibe);
 }
 
 async function vibeCheckSomeone(message, serverQueue) {
-    const user = getRandomUser(message);
+  const user = getRandomUser(message);
 
 
 }
@@ -582,6 +602,14 @@ function generateSongEmbed(song) {
     .setTimestamp()
     .setFooter('VibezBot KP CMONNN');
     return embed;
+}
+
+async function ask(message) {
+  const modifiedMessage = message.content.substring(10, message.content.length);
+  cleverbot(modifiedMessage)
+    .then(response => {
+      message.channel.send(`${response}`);
+    });
 }
 
 fs.readFile('./token.txt', 'utf-8', (err, data) => {
