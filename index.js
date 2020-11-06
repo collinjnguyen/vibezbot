@@ -1,13 +1,21 @@
+require('dotenv').config();
+
 const { Client, Intents } = require("discord.js");
 const { prefix } = require("./config.json");
 const ytdl = require("ytdl-core");
 const fs = require('fs');
 const yts = require("yt-search");
 const cleverbot = require('cleverbot-free');
+const say = require('say');
+const googleSpeech = require('@google-cloud/speech');
+const googleSpeechClient = new googleSpeech.SpeechClient();
+
+const { Transform } = require('stream');
 
 const intents = new Intents([
   Intents.NON_PRIVILEGED, // include all non-privileged intents, would be better to specify which ones you actually need
-  "GUILD_MEMBERS", // lets you request guild members (i.e. fixes the issue)
+  "GUILD_MEMBERS",
+  "GUILD_PRESENCES" // lets you request guild members (i.e. fixes the issue)
 ]);
 
 const client = new Client({ ws: { intents } });
@@ -26,6 +34,10 @@ const songs = ["https://www.youtube.com/watch?v=oQ09Bw2Q4nI", "https://www.youtu
 var vibeUsers = [];
 var vibeSongs = [];
 var currentSong;
+
+var isInVoiceChannel;
+var isPlayingSong;
+var currentConnection;
 
 client.once("ready", () => {
   console.log("Ready!");
@@ -109,6 +121,31 @@ client.on("message", async message => {
   } else if (message.content.startsWith(`${prefix}vibezbot`)) {
 
     ask(message);
+    return;
+
+  } else if (message.content.startsWith(`${prefix}say`)) {
+
+    saySomething(message);
+    return;
+
+  } else if (message.content.startsWith(`${prefix}join`)) {
+
+    join(message, serverQueue);
+    return;
+
+  } else if (message.content.startsWith(`${prefix}leave`)) {
+
+    leave(message, serverQueue);
+    return;
+
+  } else if (message.content.startsWith(`${prefix}listen`)) {
+
+    listen(message, serverQueue);
+    return;
+
+  } else if (message.content.startsWith(`${prefix}stopspeak`)) {
+
+    stopspeak(message, serverQueue);
     return;
 
   } else if (message.content.startsWith(`${prefix}fetchdata`)) {
@@ -606,10 +643,155 @@ function generateSongEmbed(song) {
 
 async function ask(message) {
   const modifiedMessage = message.content.substring(10, message.content.length);
-  cleverbot(modifiedMessage)
+  message.channel.send(`${askClever(modifiedMessage)}`);
+}
+
+function askClever(message) {
+  var answer; 
+  cleverbot(message)
     .then(response => {
-      message.channel.send(`${response}`);
+      answer = response;
     });
+  return answer;
+}
+
+async function saySomething(message) {
+  textArray = message.content.split(" ");
+  textArray.shift();
+  var text = textArray.join(" ");
+
+  const voiceChannel = message.member.voice.channel;
+
+  if (!voiceChannel) {
+    message.channel.send(`You must be in a voice channel to tell me to say things! :poop:`);
+  }
+
+  saySomethingText(voiceChannel, text);
+}
+
+async function saySomethingText(voiceChannel, text) {
+  if (!fs.existsSync('./temp')){
+    fs.mkdirSync('./temp');
+  }
+  const timestamp = new Date().getTime();
+  const soundPath = `./temp/${timestamp}.wav`;
+  say.export(text, null, 1, soundPath, (err) => {
+      if (err) {
+          console.error(err);
+          return;
+      }else{
+          voiceChannel.join().then((connection) => {
+              connection.play(soundPath).on('end', () => {
+                  connection.disconnect();
+                  fs.unlinkSync(soundPath);
+              }).on('error', (err) => {
+                  console.error(err);
+                  connection.disconnect();
+                  fs.unlinkSync(soundPath);
+              });
+          }).catch((err) => {
+              console.error(err);
+          });
+      }
+  });
+}
+
+async function join(message, serverQueue) {
+  const voiceChannel = message.member.voice.channel;
+  try {
+    var connection = await voiceChannel.join();
+    currentConnection = connection;
+  } catch (err) {
+    console.log(err);
+    return message.channel.send(err);
+  }
+}
+
+function leave(message, serverQueue) {
+  const voiceChannel = message.member.voice.channel;
+  if (voiceChannel) {
+    voiceChannel.leave();
+  } else {
+    return;
+  }
+}
+
+async function listen(message, serverQueue) {
+  
+  const voiceChannel = message.member.voice.channel;
+  const connection = await voiceChannel.join();
+  const receiver = connection.receiver;
+  var command;
+  
+  connection.on('speaking', (user, speaking) => {
+    if (!speaking) {
+      return;
+    }
+
+    console.log(`I'm listening to ${user.username}`)
+
+    // this creates a 16-bit signed PCM, stereo 48KHz stream
+    const audioStream = receiver.createStream(user, { mode: 'pcm' })
+    const requestConfig = {
+      encoding: 'LINEAR16',
+      sampleRateHertz: 48000,
+      languageCode: 'en-US'
+    }
+    const request = {
+      config: requestConfig
+    }
+    const recognizeStream = googleSpeechClient
+      .streamingRecognize(request)
+      .on('error', console.error)
+      .on('data', response => {
+        const transcription = response.results
+          .map(result => result.alternatives[0].transcript)
+          .join('\n')
+          .toLowerCase();
+        console.log(`Transcription: ${transcription}`);
+        var modifiedTranscription = transcription.split(" ");
+        if (modifiedTranscription[0] === "hey" && modifiedTranscription[1] === "vibes") {
+          modifiedTranscription.shift();
+          modifiedTranscription.shift();
+          var askThis = modifiedTranscription.join(" ");
+          cleverbot(askThis)
+            .then(response => {
+              response;
+              saySomethingText(voiceChannel, response);
+            });
+        }
+      });
+
+    const convertTo1ChannelStream = new ConvertTo1ChannelStream();
+
+    audioStream.pipe(convertTo1ChannelStream).pipe(recognizeStream);
+
+    audioStream.on('end', async () => {
+      console.log('audioStream end');
+    })
+  })
+
+}
+
+function convertBufferTo1Channel(buffer) {
+  const convertedBuffer = Buffer.alloc(buffer.length / 2);
+
+  for (let i = 0; i < convertedBuffer.length / 2; i++) {
+    const uint16 = buffer.readUInt16LE(i * 4);
+    convertedBuffer.writeUInt16LE(uint16, i * 2);
+  }
+
+  return convertedBuffer
+}
+
+class ConvertTo1ChannelStream extends Transform {
+  constructor(source, options) {
+    super(options);
+  }
+
+  _transform(data, encoding, next) {
+    next(null, convertBufferTo1Channel(data));
+  }
 }
 
 fs.readFile('./token.txt', 'utf-8', (err, data) => {
