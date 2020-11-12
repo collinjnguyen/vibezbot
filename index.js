@@ -27,9 +27,6 @@ const vibeLevels = ["has **maximum** vibezzz :100:", "has **eternal** vibezzz :f
 "**never** stops vibin :moneybag:", "could use some more **vibez** :neutral_face:", "is runnin a little **low** on vibez :slight_frown:", "has **zero** vibez :sob:", 
 "has **never** had any vibez :poop:", "is **BUILT DIFFERENT** :triumph:", "is **BUILT POORLY** :clown:"];
 const games = ["VALORANT", "Minecraft", "GTA", "Rocket League", "Left 4 Dead 2", "Among Us", ":thinking: NEW GAME :thinking: "];
-const songs = ["https://www.youtube.com/watch?v=oQ09Bw2Q4nI", "https://www.youtube.com/watch?v=98YLWuZwSKA&ab_channel=CalvinHarris-Topic", 
-"https://www.youtube.com/watch?v=KXcygf_be-Q&ab_channel=RichtheKid-Topic", "https://www.youtube.com/watch?v=sfYUdITM4Qk", "https://www.youtube.com/watch?v=1fMDjS_L2Ng&ab_channel=TazLyrics",
-"https://www.youtube.com/watch?v=rVnAziBc9GM&ab_channel=Blxst-Topic"];
 
 var vibeUsers = [];
 var vibeSongs = [];
@@ -38,6 +35,8 @@ var currentSong;
 var isInVoiceChannel;
 var isPlayingSong;
 var currentConnection;
+
+const commandWord = "bitch";
 
 client.once("ready", () => {
   console.log("Ready!");
@@ -670,6 +669,7 @@ async function saySomething(message) {
 }
 
 async function saySomethingText(voiceChannel, text) {
+  console.log('Generating text to speech...');
   if (!fs.existsSync('./temp')){
     fs.mkdirSync('./temp');
   }
@@ -694,6 +694,7 @@ async function saySomethingText(voiceChannel, text) {
           });
       }
   });
+  console.log(`Output: ${text}`);
 }
 
 async function join(message, serverQueue) {
@@ -728,7 +729,7 @@ async function listen(message, serverQueue) {
       return;
     }
 
-    console.log(`I'm listening to ${user.username}`)
+    console.log(`Listening to: ${user.username}`)
 
     // this creates a 16-bit signed PCM, stereo 48KHz stream
     const audioStream = receiver.createStream(user, { mode: 'pcm' })
@@ -750,15 +751,26 @@ async function listen(message, serverQueue) {
           .toLowerCase();
         console.log(`Transcription: ${transcription}`);
         var modifiedTranscription = transcription.split(" ");
-        if (modifiedTranscription[0] === "hey" && modifiedTranscription[1] === "vibes") {
-          modifiedTranscription.shift();
-          modifiedTranscription.shift();
-          var askThis = modifiedTranscription.join(" ");
-          cleverbot(askThis)
-            .then(response => {
-              response;
-              saySomethingText(voiceChannel, response);
-            });
+        if (modifiedTranscription[0] === commandWord || modifiedTranscription[1] === commandWord) {
+          console.log('Command word detected...');
+          if (modifiedTranscription[0] === commandWord) {
+            modifiedTranscription.shift();
+          } else {
+            modifiedTranscription.shift();
+            modifiedTranscription.shift();
+          }
+          //modifiedTranscription.shift();
+          var playSong = false;
+          if (!playSong) {
+            var askThis = modifiedTranscription.join(" ");
+            cleverbot(askThis)
+              .then(response => {
+                console.log('Received message from cleverbot...');
+                saySomethingText(voiceChannel, response);
+              });
+          } else {
+
+          }
         }
       });
 
@@ -767,7 +779,7 @@ async function listen(message, serverQueue) {
     audioStream.pipe(convertTo1ChannelStream).pipe(recognizeStream);
 
     audioStream.on('end', async () => {
-      console.log('audioStream end');
+      console.log('AudioStream ending...');
     })
   })
 
@@ -800,3 +812,6 @@ fs.readFile('./token.txt', 'utf-8', (err, data) => {
   client.login(data.toString());
 })
 
+say.getInstalledVoices((err, voices) => {
+  console.log(voices);
+});
